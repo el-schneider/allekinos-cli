@@ -45,3 +45,26 @@ City mode typically shows 8 days; film mode shows 4 or fewer. Parse `div.day` co
 
 e.g. `https://kinotickets.express/...` — no prepending needed. But internal relative URLs
 (`/kino/...`) should get `https://allekinos.de` prepended (handled in scraper).
+
+## City Matching (`src/cities.ts`)
+
+### City list comes from `a.city` on the homepage
+
+`GET https://allekinos.de/` → parse `a.city` elements. Cached at `~/.allekinos/cache/cities.json`
+with a 30-day TTL. If the homepage changes structure and yields 0 cities, a warning is printed to
+stderr — `resolveCity` will then throw `UnknownCityError` for any input.
+
+### Use `resolveCityFromList(query, cities)` for tests (not `resolveCity`)
+
+`resolveCity` calls `getCities()` which makes a network request. For unit tests, call the pure
+function `resolveCityFromList(query, cities)` with a hardcoded city list to avoid mocking.
+
+### Levenshtein threshold is scaled by query length
+
+Queries ≤4 characters use `maxDist = 1`; longer queries use `maxDist = 2`. This prevents short
+city names like `"Ulm"` from fuzzy-matching unrelated cities.
+
+### OV filter checks `format` field as substring
+
+`isOV` checks whether `format.toLowerCase()` includes `"ov"`, `"omu"`, or `"omeu"`.
+Formats like `"OV"`, `"OmU"`, `"OmeU"`, `"3D, OV"` all match correctly.
