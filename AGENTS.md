@@ -64,6 +64,18 @@ function `resolveCityFromList(query, cities)` with a hardcoded city list to avoi
 Queries ≤4 characters use `maxDist = 1`; longer queries use `maxDist = 2`. This prevents short
 city names like `"Ulm"` from fuzzy-matching unrelated cities.
 
+## Bundling for npm (Node compatibility)
+
+### Never use `import.meta.main` in code that gets bundled
+
+Bun's bundler rewrites `import.meta.main` to `__require.main === __require.module` which crashes
+in ESM under Node. Solution: separate `src/cli.ts` (entry point, calls `main()`) from
+`src/index.ts` (exports `main()` + other functions for tests). Build entry is `src/cli.ts`.
+
+### Bun-specific APIs break under Node
+
+`Bun.file()`, `Bun.write()` don't exist in Node. Use `fs.readFileSync` / `fs.writeFileSync`.
+
 ### OV filter checks `format` field as substring
 
 `isOV` checks whether `format.toLowerCase()` includes `"ov"`, `"omu"`, or `"omeu"`.
