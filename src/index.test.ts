@@ -102,28 +102,18 @@ describe("parseArgs", () => {
     expect(() => parseArgs(["Berlin", "extra"])).toThrow(CliUsageError);
   });
 
-  // ── city + --film mutual exclusivity ──────────────────────────────────────
+  // ── city + --film combination ─────────────────────────────────────────────
 
-  it("throws CliUsageError when city positional and --film are both provided", () => {
-    let error: unknown;
-    try {
-      parseArgs(["Berlin", "--film", "Dune"]);
-    } catch (e) {
-      error = e;
-    }
-    expect(error).toBeInstanceOf(CliUsageError);
-    expect((error as CliUsageError).message).toMatch(/mutually exclusive/i);
+  it("allows city positional and --film together", () => {
+    const opts = parseArgs(["Berlin", "--film", "Dune"]);
+    expect(opts.city).toBe("Berlin");
+    expect(opts.film).toBe("Dune");
   });
 
-  it("throws CliUsageError when city positional and -f are both provided", () => {
-    let error: unknown;
-    try {
-      parseArgs(["Berlin", "-f", "Dune"]);
-    } catch (e) {
-      error = e;
-    }
-    expect(error).toBeInstanceOf(CliUsageError);
-    expect((error as CliUsageError).message).toMatch(/mutually exclusive/i);
+  it("allows city positional and -f together", () => {
+    const opts = parseArgs(["Berlin", "-f", "Dune"]);
+    expect(opts.city).toBe("Berlin");
+    expect(opts.film).toBe("Dune");
   });
 
   // ── --week flag ────────────────────────────────────────────────────────────

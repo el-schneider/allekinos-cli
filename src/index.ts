@@ -127,12 +127,6 @@ export function parseArgs(args: string[]): Options {
     i++;
   }
 
-  if (opts.city !== undefined && opts.film !== undefined) {
-    throw new CliUsageError(
-      "A city positional argument and --film are mutually exclusive. Use one or the other.",
-    );
-  }
-
   if (opts.week && opts.today) {
     throw new CliUsageError("--week and --today are mutually exclusive.");
   }
@@ -199,7 +193,8 @@ async function main(): Promise<void> {
   let screenings;
   let resolved: string | undefined;
 
-  if (opts.film) {
+  if (opts.film && !opts.city) {
+    // Film search everywhere (no city given)
     try {
       screenings = await scrapeFilm(opts.film);
     } catch (err) {
@@ -239,7 +234,13 @@ async function main(): Promise<void> {
     screenings = screenings.filter((s) => isOV(s.format));
   }
 
-  // 3. Genre filter
+  // 3. Film filter (city + --film mode)
+  if (opts.film && opts.city) {
+    const filmLower = opts.film.toLowerCase();
+    screenings = screenings.filter((s) => s.film.toLowerCase().includes(filmLower));
+  }
+
+  // 4. Genre filter
   if (opts.genre) {
     const genreLower = opts.genre.toLowerCase();
     screenings = screenings.filter((s) =>
@@ -254,14 +255,19 @@ async function main(): Promise<void> {
   }
 
   // Determine display mode
-  const mode: FormatMode = opts.film ? "film" : opts.today ? "city-today" : "city-week";
+  // "film" mode = --film without city (shows results grouped by city)
+  // city+film = same as city mode, just filtered
+  const mode: FormatMode =
+    opts.film && !opts.city ? "film" : opts.today ? "city-today" : "city-week";
 
   // Output
   if (opts.json) {
     console.log(JSON.stringify(screenings, null, 2));
   } else if (screenings.length === 0) {
-    if (opts.film) {
+    if (opts.film && !opts.city) {
       process.stderr.write(`No screenings found for "${opts.film}".\n`);
+    } else if (opts.film && opts.city) {
+      process.stderr.write(`No screenings of "${opts.film}" in ${resolved ?? opts.city}.\n`);
     } else if (opts.today) {
       process.stderr.write(
         `No screenings in ${resolved ?? opts.city} for today. Try without --today for the full week.\n`,
