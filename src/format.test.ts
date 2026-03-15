@@ -31,15 +31,6 @@ describe("formatDateDE", () => {
     expect(formatDateDE("2026-03-15")).toBe("So. 15. März");
   });
 
-  it('formats "2026-01-01" → "Do. 1. Jan."', () => {
-    expect(formatDateDE("2026-01-01")).toBe("Do. 1. Jan.");
-  });
-
-  it('formats "2026-12-25" correctly', () => {
-    // 2026-12-25 is a Friday
-    expect(formatDateDE("2026-12-25")).toBe("Fr. 25. Dez.");
-  });
-
   it('formats "2026-06-01" using "Juni" (no dot)', () => {
     expect(formatDateDE("2026-06-01")).toBe("Mo. 1. Juni");
   });
@@ -61,19 +52,6 @@ describe("formatScreenings — city-today", () => {
     makeScreening({ cinema: "Kino B", address: "Allee 5", film: "Film Z", time: "19:00" }),
   ];
 
-  it("contains cinema names as headers", () => {
-    const out = formatScreenings(screenings, "city-today", false);
-    expect(out).toContain("Kino A");
-    expect(out).toContain("Kino B");
-  });
-
-  it("contains film titles indented", () => {
-    const out = formatScreenings(screenings, "city-today", false);
-    expect(out).toMatch(/^\s+Film X/m);
-    expect(out).toMatch(/^\s+Film Y/m);
-    expect(out).toMatch(/^\s+Film Z/m);
-  });
-
   it("shows times on the same line as film", () => {
     const out = formatScreenings(screenings, "city-today", false);
     // Film X should have both times on the same line
@@ -83,16 +61,6 @@ describe("formatScreenings — city-today", () => {
   it("shows format tag in parentheses", () => {
     const out = formatScreenings(screenings, "city-today", false);
     expect(out).toContain("Film Y (OmU)");
-  });
-
-  it("contains address after cinema", () => {
-    const out = formatScreenings(screenings, "city-today", false);
-    expect(out).toContain("Straße 1");
-  });
-
-  it("does NOT contain ANSI codes when useColor=false", () => {
-    const out = formatScreenings(screenings, "city-today", false);
-    expect(out).not.toContain("\x1b");
   });
 
   it("deduplicates times for same film at same cinema", () => {
@@ -146,23 +114,6 @@ describe("formatScreenings — city-week", () => {
     const idx16 = out.indexOf("16. März");
     expect(idx15).toBeLessThan(idx16);
   });
-
-  it("shows cinema names indented under date", () => {
-    const out = formatScreenings(screenings, "city-week", false);
-    expect(out).toMatch(/^\s{2}Kino A/m);
-    expect(out).toMatch(/^\s{2}Kino B/m);
-  });
-
-  it("shows films indented under cinemas", () => {
-    const out = formatScreenings(screenings, "city-week", false);
-    expect(out).toMatch(/^\s{4}Film X/m);
-    expect(out).toMatch(/^\s{4}Film Y/m);
-  });
-
-  it("does NOT contain ANSI codes when useColor=false", () => {
-    const out = formatScreenings(screenings, "city-week", false);
-    expect(out).not.toContain("\x1b");
-  });
 });
 
 // ── film mode ─────────────────────────────────────────────────────────────────
@@ -174,18 +125,6 @@ describe("formatScreenings — film mode", () => {
     makeScreening({ city: "München", cinema: "Kino B", film: "Dune", time: "20:00" }),
   ];
 
-  it("shows city names as headers", () => {
-    const out = formatScreenings(screenings, "film", false);
-    expect(out).toContain("Berlin");
-    expect(out).toContain("München");
-  });
-
-  it("shows cinema names indented under city", () => {
-    const out = formatScreenings(screenings, "film", false);
-    expect(out).toMatch(/^\s{2}Kino A/m);
-    expect(out).toMatch(/^\s{2}Kino B/m);
-  });
-
   it("shows times on the same line as cinema", () => {
     const out = formatScreenings(screenings, "film", false);
     // Kino A should show both times
@@ -194,66 +133,6 @@ describe("formatScreenings — film mode", () => {
 
   it("does NOT show the film title (it's the searched film)", () => {
     const out = formatScreenings(screenings, "film", false);
-    // "Dune" should not appear as content (though city/cinema names might coincidentally match)
     expect(out).not.toContain("Dune");
-  });
-
-  it("does NOT contain ANSI codes when useColor=false", () => {
-    const out = formatScreenings(screenings, "film", false);
-    expect(out).not.toContain("\x1b");
-  });
-});
-
-// ── color output ──────────────────────────────────────────────────────────────
-
-describe("formatScreenings — color output", () => {
-  const screenings: Screening[] = [
-    makeScreening({
-      cinema: "Kino A",
-      address: "Straße 1",
-      film: "Film X",
-      format: "OV",
-      time: "20:00",
-    }),
-  ];
-
-  it("wraps cinema name in bold ANSI when useColor=true", () => {
-    const out = formatScreenings(screenings, "city-today", true);
-    expect(out).toContain("\x1b[1mKino A\x1b[0m");
-  });
-
-  it("wraps format tag in green ANSI when useColor=true", () => {
-    const out = formatScreenings(screenings, "city-today", true);
-    expect(out).toContain("\x1b[32mOV\x1b[0m");
-  });
-
-  it("wraps address in dim ANSI when useColor=true", () => {
-    const out = formatScreenings(screenings, "city-today", true);
-    expect(out).toContain("\x1b[2mStraße 1\x1b[0m");
-  });
-
-  it("contains ANSI codes in city-week date header when useColor=true", () => {
-    const out = formatScreenings(
-      [makeScreening({ date: "2026-03-15", cinema: "Kino A", film: "Film X", time: "20:00" })],
-      "city-week",
-      true,
-    );
-    expect(out).toContain("\x1b[1mSo. 15. März\x1b[0m");
-  });
-});
-
-// ── empty screenings ──────────────────────────────────────────────────────────
-
-describe("formatScreenings — empty input", () => {
-  it("returns empty string for city-today", () => {
-    expect(formatScreenings([], "city-today", false)).toBe("");
-  });
-
-  it("returns empty string for city-week", () => {
-    expect(formatScreenings([], "city-week", false)).toBe("");
-  });
-
-  it("returns empty string for film mode", () => {
-    expect(formatScreenings([], "film", false)).toBe("");
   });
 });

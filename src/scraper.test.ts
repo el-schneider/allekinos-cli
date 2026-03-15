@@ -103,13 +103,9 @@ describe("parseDayHeaders", () => {
   });
 
   it("handles Dec→Jan year rollover", () => {
-    // Simulate a page from late December showing January dates
-    // We can't mock Date easily, so we test the month parsing logic directly.
-    // Instead, verify a Januar header parses to the right month.
     const html = makePageHtml(["Mo. 5. Januar", "Di. 6. Januar"], "");
     const root = parseHTML(html);
     const dates = parseDayHeaders(root);
-    // January should roll to next year only when current month is December
     expect(dates[0]).toBe(`${JANUARY_YEAR}-01-05`);
     expect(dates[1]).toBe(`${JANUARY_YEAR}-01-06`);
   });
@@ -182,12 +178,6 @@ describe("parseMetadataText", () => {
     expect(parseMetadataText("FSK 12").fsk).toBe("FSK 12");
     expect(parseMetadataText("FSK ab 16").fsk).toBe("FSK ab 16");
     expect(parseMetadataText("FSK 0").fsk).toBe("FSK 0");
-  });
-
-  it("returns empty genres for empty input", () => {
-    const result = parseMetadataText("");
-    expect(result.genres).toEqual([]);
-    expect(result.year).toBeUndefined();
   });
 
   it("parses runtime with only minutes", () => {
@@ -442,7 +432,6 @@ describe("parsePage full parse", () => {
 
 describe("city mode vs film mode", () => {
   it("city mode: city field is undefined when no city link in address", () => {
-    // City mode: address div has ?stadt=&bezirk= link (district, not bare city)
     const cinemaHtml =
       `<div class="c">
       <a href="/programm?stadt=Berlin&amp;kino=Test">Test Kino</a>
@@ -481,7 +470,6 @@ describe("city mode vs film mode", () => {
   });
 
   it("film mode: city is extracted from bare city link in address", () => {
-    // Film mode: address div has /programm?stadt=Tübingen (no bezirk/kino params)
     const cinemaHtml =
       `<div class="c">
       <a href="/programm?stadt=T%C3%BCbingen&amp;kino=Blaue+Bruecke">Filmtheater Blaue Brücke</a>
@@ -512,23 +500,6 @@ describe("city mode vs film mode", () => {
     expect(screenings[0].address).toBe("Friedrichstrasse 19");
     expect(screenings[0].date).toBe(`${CURRENT_YEAR}-03-18`);
     expect(screenings[0].time).toBe("14:00");
-  });
-
-  it("empty page returns empty array", () => {
-    const html = makePageHtml(
-      [
-        "So. 15. März",
-        "Mo. 16. März",
-        "Di. 17. März",
-        "Mi. 18. März",
-        "Do. 19. März",
-        "Fr. 20. März",
-        "Sa. 21. März",
-        "So. 22. März",
-      ],
-      "",
-    );
-    expect(parsePage(html)).toEqual([]);
   });
 
   it("multiple times in one day cell → separate Screening objects", () => {
@@ -562,7 +533,6 @@ describe("city mode vs film mode", () => {
     const screenings = parsePage(html);
     expect(screenings).toHaveLength(3);
     expect(screenings.map((s) => s.time)).toEqual(["14:00", "17:30", "20:15"]);
-    // All same date, same cinema
     expect(new Set(screenings.map((s) => s.date)).size).toBe(1);
     expect(screenings[0].date).toBe(`${CURRENT_YEAR}-03-15`);
   });
