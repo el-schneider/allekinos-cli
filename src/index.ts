@@ -282,13 +282,11 @@ async function main(): Promise<void> {
   process.exit(0);
 }
 
-// Support both Bun (import.meta.main) and Node (direct execution)
-const isMain =
-  typeof (import.meta as Record<string, unknown>).main === "boolean"
-    ? (import.meta as Record<string, unknown>).main
-    : true;
+// In Bun: import.meta.main is false during tests/imports
+// In Node (bundled): import.meta.main is undefined, but it's always the entry point
+const isBunTest = (import.meta as Record<string, unknown>).main === false;
 
-if (isMain) {
+if (!isBunTest) {
   main().catch((err) => {
     process.stderr.write(`Unexpected error: ${err instanceof Error ? err.message : String(err)}\n`);
     process.exit(1);
