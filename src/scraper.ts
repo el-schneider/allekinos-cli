@@ -67,6 +67,11 @@ export function parseDayHeaders(root: HTMLElement): string[] {
       year = currentYear + 1;
     }
 
+    // Parsing failed for this header — return empty marker so callers can skip
+    if (day < 1 || month < 1) {
+      return "";
+    }
+
     const mm = String(month).padStart(2, "0");
     const dd = String(day).padStart(2, "0");
     return `${year}-${mm}-${dd}`;
@@ -148,8 +153,8 @@ function parseCinemaBlock(
   // Address div: first <div> child inside div.c
   const addrDiv = cinemaEl.querySelector("div");
   const addrText = addrDiv?.textContent.trim() ?? "";
-  // Address is the text before the • separator
-  const address = addrText.split("•")[0].trim();
+  // Address is the text before the bullet separator (real site: •, docs: ·)
+  const address = addrText.split(/[•·]/)[0].trim();
 
   // City (film mode only): <a> in address div where href is /programm?stadt=X
   // with no &bezirk= or &kino= params (those are city-mode district/cinema links)
@@ -263,7 +268,8 @@ export function parsePage(html: string): Screening[] {
     const { genres, year, runtime, fsk } = parseMetadataText(mi?.textContent.trim() ?? "");
 
     const md = mt.querySelector("div.md");
-    const description = md?.getAttribute("title") ?? md?.textContent.trim() ?? "";
+    const descriptionTitle = md?.getAttribute("title")?.trim();
+    const description = descriptionTitle || md?.textContent.trim() || "";
 
     const filmInfo: FilmInfo = { film, format, genres, year, runtime, fsk, description };
 

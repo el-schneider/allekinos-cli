@@ -2,6 +2,9 @@ import { describe, it, expect } from "bun:test";
 import { parse as parseHTML } from "node-html-parser";
 import { parseDayHeaders, parseMetadataText, parsePage } from "./scraper.ts";
 
+const CURRENT_YEAR = new Date().getFullYear();
+const JANUARY_YEAR = new Date().getMonth() === 11 ? CURRENT_YEAR + 1 : CURRENT_YEAR;
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function makePageHtml(dayHeaders: string[], rowsHtml: string): string {
@@ -87,8 +90,8 @@ describe("parseDayHeaders", () => {
     const root = parseHTML(html);
     const dates = parseDayHeaders(root);
     expect(dates).toHaveLength(8);
-    expect(dates[0]).toBe("2026-03-15");
-    expect(dates[7]).toBe("2026-03-22");
+    expect(dates[0]).toBe(`${CURRENT_YEAR}-03-15`);
+    expect(dates[7]).toBe(`${CURRENT_YEAR}-03-22`);
   });
 
   it("parses 4 day headers (film mode)", () => {
@@ -96,7 +99,7 @@ describe("parseDayHeaders", () => {
     const root = parseHTML(html);
     const dates = parseDayHeaders(root);
     expect(dates).toHaveLength(4);
-    expect(dates[3]).toBe("2026-03-18");
+    expect(dates[3]).toBe(`${CURRENT_YEAR}-03-18`);
   });
 
   it("handles Dec→Jan year rollover", () => {
@@ -106,9 +109,9 @@ describe("parseDayHeaders", () => {
     const html = makePageHtml(["Mo. 5. Januar", "Di. 6. Januar"], "");
     const root = parseHTML(html);
     const dates = parseDayHeaders(root);
-    // In current context (March 2026) it stays 2026
-    expect(dates[0]).toMatch(/^\d{4}-01-05$/);
-    expect(dates[1]).toMatch(/^\d{4}-01-06$/);
+    // January should roll to next year only when current month is December
+    expect(dates[0]).toBe(`${JANUARY_YEAR}-01-05`);
+    expect(dates[1]).toBe(`${JANUARY_YEAR}-01-06`);
   });
 
   it("parses all German month names", () => {
@@ -323,7 +326,7 @@ describe("parsePage full parse", () => {
     expect(s.film).toBe("Inception");
     expect(s.cinema).toBe("Filmpalast");
     expect(s.address).toBe("Hauptstr. 1");
-    expect(s.date).toBe("2026-03-15");
+    expect(s.date).toBe(`${CURRENT_YEAR}-03-15`);
     expect(s.time).toBe("19:30");
     expect(s.isPast).toBe(false);
     expect(s.ticketUrl).toBe("https://ticket.example.com/42");
@@ -368,6 +371,70 @@ describe("parsePage full parse", () => {
     expect(screenings[0].ticketUrl).toBeUndefined();
     expect(screenings[1].isPast).toBe(true);
     expect(screenings[1].time).toBe("13:00");
+  });
+
+  it("falls back to div.md text when title attribute is empty", () => {
+    const html = makePageHtml(
+      [
+        "So. 15. März",
+        "Mo. 16. März",
+        "Di. 17. März",
+        "Mi. 18. März",
+        "Do. 19. März",
+        "Fr. 20. März",
+        "Sa. 21. März",
+        "So. 22. März",
+      ],
+      `<div class="row">
+        <div class="mt">
+          <h2><a href="/programm?film=Testfilm">Testfilm</a></h2>
+          <div class="mi">Drama</div>
+          <div class="md" title="">Fallback description</div>
+        </div>
+        <p class="e"></p>
+        <div class="c">
+          <a href="/programm?stadt=Berlin&amp;kino=Test">Test Kino</a>
+          <div>Teststr. 5 • <a href="/programm?stadt=Berlin&amp;bezirk=Mitte">Mitte</a></div>
+        </div>
+        <p><a href="https://ticket.example.com/1">20:00</a></p>
+      </div>`,
+    );
+
+    const screenings = parsePage(html);
+    expect(screenings).toHaveLength(1);
+    expect(screenings[0].description).toBe("Fallback description");
+  });
+
+  it("parses address when separator is middle dot", () => {
+    const html = makePageHtml(
+      [
+        "So. 15. März",
+        "Mo. 16. März",
+        "Di. 17. März",
+        "Mi. 18. März",
+        "Do. 19. März",
+        "Fr. 20. März",
+        "Sa. 21. März",
+        "So. 22. März",
+      ],
+      `<div class="row">
+        <div class="mt">
+          <h2><a href="/programm?film=Testfilm">Testfilm</a></h2>
+          <div class="mi">Drama</div>
+          <div class="md" title="Desc">Desc</div>
+        </div>
+        <p class="e"></p>
+        <div class="c">
+          <a href="/programm?stadt=Berlin&amp;kino=Test">Test Kino</a>
+          <div>Teststr. 5 · <a href="/programm?stadt=Berlin&amp;bezirk=Mitte">Mitte</a></div>
+        </div>
+        <p><a href="https://ticket.example.com/1">20:00</a></p>
+      </div>`,
+    );
+
+    const screenings = parsePage(html);
+    expect(screenings).toHaveLength(1);
+    expect(screenings[0].address).toBe("Teststr. 5");
   });
 });
 
@@ -443,7 +510,7 @@ describe("city mode vs film mode", () => {
     expect(screenings[0].city).toBe("Tübingen");
     expect(screenings[0].cinema).toBe("Filmtheater Blaue Brücke");
     expect(screenings[0].address).toBe("Friedrichstrasse 19");
-    expect(screenings[0].date).toBe("2026-03-18");
+    expect(screenings[0].date).toBe(`${CURRENT_YEAR}-03-18`);
     expect(screenings[0].time).toBe("14:00");
   });
 
@@ -497,7 +564,7 @@ describe("city mode vs film mode", () => {
     expect(screenings.map((s) => s.time)).toEqual(["14:00", "17:30", "20:15"]);
     // All same date, same cinema
     expect(new Set(screenings.map((s) => s.date)).size).toBe(1);
-    expect(screenings[0].date).toBe("2026-03-15");
+    expect(screenings[0].date).toBe(`${CURRENT_YEAR}-03-15`);
   });
 
   it("multiple cinemas per row → correct count", () => {
@@ -537,8 +604,8 @@ describe("city mode vs film mode", () => {
     const screenings = parsePage(html);
     expect(screenings).toHaveLength(2);
     expect(screenings[0].cinema).toBe("Kino A");
-    expect(screenings[0].date).toBe("2026-03-15");
+    expect(screenings[0].date).toBe(`${CURRENT_YEAR}-03-15`);
     expect(screenings[1].cinema).toBe("Kino B");
-    expect(screenings[1].date).toBe("2026-03-16");
+    expect(screenings[1].date).toBe(`${CURRENT_YEAR}-03-16`);
   });
 });
