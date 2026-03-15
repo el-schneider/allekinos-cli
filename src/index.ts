@@ -282,7 +282,13 @@ async function main(): Promise<void> {
   process.exit(0);
 }
 
-if (import.meta.main) {
+// Support both Bun (import.meta.main) and Node (direct execution)
+const isMain =
+  typeof (import.meta as Record<string, unknown>).main === "boolean"
+    ? (import.meta as Record<string, unknown>).main
+    : true;
+
+if (isMain) {
   main().catch((err) => {
     process.stderr.write(`Unexpected error: ${err instanceof Error ? err.message : String(err)}\n`);
     process.exit(1);

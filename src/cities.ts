@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { parse as parseHTML } from "node-html-parser";
@@ -73,7 +73,7 @@ export async function getCities(): Promise<string[]> {
   // Try cache first
   if (existsSync(CACHE_FILE)) {
     try {
-      const cache = (await Bun.file(CACHE_FILE).json()) as CityCache;
+      const cache = JSON.parse(readFileSync(CACHE_FILE, "utf-8")) as CityCache;
       const age = Date.now() - new Date(cache.fetchedAt).getTime();
       if (age < CACHE_TTL_MS && Array.isArray(cache.cities) && cache.cities.length > 0) {
         return cache.cities;
@@ -110,7 +110,7 @@ export async function getCities(): Promise<string[]> {
   // Persist cache
   mkdirSync(CACHE_DIR, { recursive: true });
   const cacheData: CityCache = { fetchedAt: new Date().toISOString(), cities };
-  await Bun.write(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+  writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2), "utf-8");
 
   return cities;
 }

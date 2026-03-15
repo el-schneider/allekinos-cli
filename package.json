@@ -2,12 +2,30 @@
   "name": "allekinos-cli",
   "version": "0.1.0",
   "description": "CLI wrapper for allekinos.de — look up cinema showtimes across Germany",
+  "keywords": [
+    "allekinos",
+    "cinema",
+    "cli",
+    "germany",
+    "kino",
+    "showtimes"
+  ],
   "license": "MIT",
-  "bin": {
-    "allekinos": "./src/index.ts"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/el-schneider/allekinos-cli.git"
   },
+  "bin": {
+    "allekinos": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
   "scripts": {
+    "build": "bun run scripts/build.ts",
+    "prepublishOnly": "bun run build",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt .",
