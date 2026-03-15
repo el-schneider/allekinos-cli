@@ -30,6 +30,9 @@ allekinos Berlin --ov
 # Filter by genre (case-insensitive substring)
 allekinos Berlin --genre Drama
 
+# Search for a film in a specific city
+allekinos Berlin --film "Dune"
+
 # Search for a film across all cities
 allekinos --film "Dune"
 
@@ -48,7 +51,7 @@ allekinos München --ov --today --json
 | Flag             | Short | Description                                                           |
 | ---------------- | ----- | --------------------------------------------------------------------- |
 | `<city>`         | —     | City name (positional). Quote multi-word names: `"Frankfurt am Main"` |
-| `--film <name>`  | `-f`  | Search for a film across all cities                                   |
+| `--film <name>`  | `-f`  | Search for a film (in given city, or across all cities if no city)    |
 | `--ov`           | —     | Filter to original-version screenings (OV / OmU / OmeU)               |
 | `--genre <name>` | `-g`  | Filter by genre (case-insensitive substring match)                    |
 | `--today`        | `-t`  | Show only today's screenings                                          |
@@ -107,13 +110,14 @@ Use `--json` to get a machine-readable array of `Screening` objects:
 
 **Common patterns:**
 
-| Goal                        | Command                           |
-| --------------------------- | --------------------------------- |
-| What's playing today?       | `allekinos <city> --today --json` |
-| Find OV screenings          | `allekinos <city> --ov --json`    |
-| Is film X playing?          | `allekinos --film "X" --json`     |
-| Which cities are supported? | `allekinos --cities`              |
-| Full week in JSON           | `allekinos <city> --json`         |
+| Goal                        | Command                              |
+| --------------------------- | ------------------------------------ |
+| What's playing today?       | `allekinos <city> --today --json`    |
+| Find OV screenings          | `allekinos <city> --ov --json`       |
+| Is film X playing in city?  | `allekinos <city> --film "X" --json` |
+| Is film X playing anywhere? | `allekinos --film "X" --json`        |
+| Which cities are supported? | `allekinos --cities`                 |
+| Full week in JSON           | `allekinos <city> --json`            |
 
 **Exit codes:** `0` = success, `1` = error (unknown city, no results, bad flags, network error).
 
