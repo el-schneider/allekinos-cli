@@ -150,7 +150,7 @@ function isOV(format?: string): boolean {
   return OV_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   let opts: Options;
   try {
     opts = parseArgs(process.argv.slice(2));
@@ -280,15 +280,4 @@ async function main(): Promise<void> {
     process.stdout.write(formatScreenings(screenings, mode));
   }
   process.exit(0);
-}
-
-// In Bun: import.meta.main is false during tests/imports
-// In Node (bundled): import.meta.main is undefined, but it's always the entry point
-const isBunTest = (import.meta as Record<string, unknown>).main === false;
-
-if (!isBunTest) {
-  main().catch((err) => {
-    process.stderr.write(`Unexpected error: ${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(1);
-  });
 }

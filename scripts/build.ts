@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, chmodSync } from "fs";
 
 const result = await Bun.build({
-  entrypoints: ["./src/index.ts"],
+  entrypoints: ["./src/cli.ts"],
   outdir: "./dist",
   target: "node",
   format: "esm",
@@ -15,11 +15,14 @@ if (!result.success) {
   process.exit(1);
 }
 
-// Replace Bun shebang with Node shebang
-const outFile = "./dist/index.js";
+// Ensure Node shebang
+const outFile = "./dist/cli.js";
 let content = readFileSync(outFile, "utf-8");
 content = content.replace("#!/usr/bin/env bun", "#!/usr/bin/env node");
+if (!content.startsWith("#!")) {
+  content = "#!/usr/bin/env node\n" + content;
+}
 writeFileSync(outFile, content);
 chmodSync(outFile, 0o755);
 
-console.log("Build complete: dist/index.js");
+console.log("Build complete: dist/cli.js");

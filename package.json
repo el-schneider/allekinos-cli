@@ -16,7 +16,7 @@
     "url": "git+https://github.com/el-schneider/allekinos-cli.git"
   },
   "bin": {
-    "allekinos": "./dist/index.js"
+    "allekinos": "./dist/cli.js"
   },
   "files": [
     "dist",
