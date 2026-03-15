@@ -8,7 +8,7 @@ export interface Screening {
   description: string;
   cinema: string; // "Filmtheater Blaue Brücke"
   address: string; // "Friedrichstrasse 19"
-  city?: string; // only populated in --film mode (no city given)
+  city?: string; // only populated in --film mode (no city)
   date: string; // "2026-03-15" (ISO)
   time: string; // "19:30"
   isPast: boolean;

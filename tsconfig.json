@@ -4,8 +4,11 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["bun-types"],
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "./dist"
-  }
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["bun-types"]
+  },
+  "include": ["src"]
 }
