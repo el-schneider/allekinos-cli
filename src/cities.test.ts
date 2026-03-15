@@ -114,4 +114,36 @@ describe("resolveCityFromList", () => {
   it("levenshtein match: Berln → Berlin (distance 1)", () => {
     expect(resolveCityFromList("Berln", TEST_CITIES)).toBe("Berlin");
   });
+
+  it("trims leading/trailing whitespace before matching", () => {
+    expect(resolveCityFromList("  Berlin  ", TEST_CITIES)).toBe("Berlin");
+    expect(resolveCityFromList("\tMünchen\n", TEST_CITIES)).toBe("München");
+  });
+
+  it("empty string throws UnknownCityError", () => {
+    expect(() => resolveCityFromList("", TEST_CITIES)).toThrow(UnknownCityError);
+  });
+
+  it("whitespace-only string throws UnknownCityError", () => {
+    expect(() => resolveCityFromList("   ", TEST_CITIES)).toThrow(UnknownCityError);
+  });
+});
+
+// ── Levenshtein threshold scaling ─────────────────────────────────────────────
+
+describe("Levenshtein threshold scaling", () => {
+  it("short query (<=4 chars) uses maxDist=1: accepts distance-1 fuzzy match", () => {
+    // "Bonm" is not a prefix of "Bonn" but levenshtein("bonm","bonn") = 1
+    expect(resolveCityFromList("Bonm", ["Bonn"])).toBe("Bonn");
+  });
+
+  it("short query (<=4 chars) uses maxDist=1: rejects distance-2 fuzzy match", () => {
+    // levenshtein("ache","aachen") = 2 — exceeds maxDist=1 for a 4-char query
+    expect(() => resolveCityFromList("Ache", ["Aachen"])).toThrow(UnknownCityError);
+  });
+
+  it("long query (>4 chars) uses maxDist=2: accepts distance-2 fuzzy match", () => {
+    // levenshtein("aacheenn","aachen") = 2 — within maxDist=2 for an 8-char query
+    expect(resolveCityFromList("Aacheenn", ["Aachen"])).toBe("Aachen");
+  });
 });

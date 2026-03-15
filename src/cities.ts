@@ -133,7 +133,9 @@ export function clearCache(): void {
  *   4. If still nothing → throws `UnknownCityError`
  */
 export function resolveCityFromList(query: string, cities: string[]): string {
-  const normQuery = normalizeUmlauts(query).toLowerCase();
+  const trimmed = query.trim();
+  if (trimmed === "") throw new UnknownCityError(query);
+  const normQuery = normalizeUmlauts(trimmed).toLowerCase();
 
   // 1. Exact match
   for (const city of cities) {

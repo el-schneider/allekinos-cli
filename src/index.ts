@@ -1,6 +1,12 @@
 #!/usr/bin/env bun
 import { scrapeCity, scrapeFilm } from "./scraper.ts";
-import { clearCache, resolveCity, AmbiguousCityError, UnknownCityError } from "./cities.ts";
+import {
+  clearCache,
+  getCities,
+  resolveCity,
+  AmbiguousCityError,
+  UnknownCityError,
+} from "./cities.ts";
 import { formatScreenings, type FormatMode } from "./format.ts";
 
 const VERSION = "0.1.0";
@@ -13,7 +19,9 @@ Options:
   --ov                Filter to original version (OV/OmU/OmeU) screenings
   --genre, -g <name>  Filter by genre (case-insensitive substring match)
   --today, -t         Show only today's screenings
+  --week, -w          Show the full week (default behavior)
   --json              Output as JSON
+  --cities            List all known cities
   --clear-cache       Clear the city name cache
   --help, -h          Show this help
   --version, -v       Show version
@@ -32,7 +40,9 @@ interface Options {
   ov: boolean;
   genre?: string;
   today: boolean;
+  week: boolean;
   json: boolean;
+  citiesFlag: boolean;
   clearCacheFlag: boolean;
   help: boolean;
   version: boolean;
@@ -42,7 +52,9 @@ export function parseArgs(args: string[]): Options {
   const opts: Options = {
     ov: false,
     today: false,
+    week: false,
     json: false,
+    citiesFlag: false,
     clearCacheFlag: false,
     help: false,
     version: false,
@@ -79,8 +91,15 @@ export function parseArgs(args: string[]): Options {
       case "-t":
         opts.today = true;
         break;
+      case "--week":
+      case "-w":
+        opts.week = true;
+        break;
       case "--json":
         opts.json = true;
+        break;
+      case "--cities":
+        opts.citiesFlag = true;
         break;
       case "--clear-cache":
         opts.clearCacheFlag = true;
@@ -106,6 +125,16 @@ export function parseArgs(args: string[]): Options {
         break;
     }
     i++;
+  }
+
+  if (opts.city !== undefined && opts.film !== undefined) {
+    throw new CliUsageError(
+      "A city positional argument and --film are mutually exclusive. Use one or the other.",
+    );
+  }
+
+  if (opts.week && opts.today) {
+    throw new CliUsageError("--week and --today are mutually exclusive.");
   }
 
   return opts;
@@ -153,6 +182,17 @@ async function main(): Promise<void> {
 
   if (opts.version) {
     console.log(VERSION);
+    process.exit(0);
+  }
+
+  if (opts.citiesFlag) {
+    try {
+      const cities = await getCities();
+      console.log(cities.join("\n"));
+    } catch (err) {
+      process.stderr.write(`Error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
     process.exit(0);
   }
 
@@ -214,8 +254,7 @@ async function main(): Promise<void> {
   }
 
   // Determine display mode
-  const mode: FormatMode =
-    opts.film && !opts.city ? "film" : opts.today ? "city-today" : "city-week";
+  const mode: FormatMode = opts.film ? "film" : opts.today ? "city-today" : "city-week";
 
   // Output
   if (opts.json) {

@@ -1,0 +1,158 @@
+import { describe, it, expect } from "bun:test";
+import { parseArgs, CliUsageError } from "./index.ts";
+
+// ── parseArgs ─────────────────────────────────────────────────────────────────
+
+describe("parseArgs", () => {
+  it("parses a bare city positional argument", () => {
+    const opts = parseArgs(["Berlin"]);
+    expect(opts.city).toBe("Berlin");
+    expect(opts.film).toBeUndefined();
+    expect(opts.ov).toBe(false);
+    expect(opts.json).toBe(false);
+    expect(opts.today).toBe(false);
+  });
+
+  it("parses --film <name>", () => {
+    const opts = parseArgs(["--film", "Dune"]);
+    expect(opts.film).toBe("Dune");
+    expect(opts.city).toBeUndefined();
+  });
+
+  it("parses -f <name> (short form)", () => {
+    const opts = parseArgs(["-f", "Dune"]);
+    expect(opts.film).toBe("Dune");
+  });
+
+  it("parses --genre <name>", () => {
+    const opts = parseArgs(["Berlin", "--genre", "Drama"]);
+    expect(opts.genre).toBe("Drama");
+  });
+
+  it("parses -g <name> (short form)", () => {
+    const opts = parseArgs(["Berlin", "-g", "Sci-Fi"]);
+    expect(opts.genre).toBe("Sci-Fi");
+  });
+
+  it("parses --ov, --today, --json boolean flags", () => {
+    const opts = parseArgs(["Berlin", "--ov", "--today", "--json"]);
+    expect(opts.ov).toBe(true);
+    expect(opts.today).toBe(true);
+    expect(opts.json).toBe(true);
+  });
+
+  it("parses -t as alias for --today", () => {
+    const opts = parseArgs(["Berlin", "-t"]);
+    expect(opts.today).toBe(true);
+  });
+
+  // ── --film missing value ───────────────────────────────────────────────────
+
+  it("throws CliUsageError when --film has no following argument", () => {
+    expect(() => parseArgs(["--film"])).toThrow(CliUsageError);
+  });
+
+  it("throws CliUsageError when --film value is another flag", () => {
+    expect(() => parseArgs(["--film", "--ov"])).toThrow(CliUsageError);
+  });
+
+  it("throws CliUsageError when -f value is another flag", () => {
+    expect(() => parseArgs(["-f", "--json"])).toThrow(CliUsageError);
+  });
+
+  // ── --genre missing value ──────────────────────────────────────────────────
+
+  it("throws CliUsageError when --genre has no following argument", () => {
+    expect(() => parseArgs(["Berlin", "--genre"])).toThrow(CliUsageError);
+  });
+
+  it("throws CliUsageError when --genre value is another flag", () => {
+    expect(() => parseArgs(["Berlin", "--genre", "--ov"])).toThrow(CliUsageError);
+  });
+
+  it("throws CliUsageError when -g value is another flag", () => {
+    expect(() => parseArgs(["Berlin", "-g", "--json"])).toThrow(CliUsageError);
+  });
+
+  // ── unknown flags ──────────────────────────────────────────────────────────
+
+  it("throws CliUsageError for an unknown long flag", () => {
+    expect(() => parseArgs(["Berlin", "--unknown"])).toThrow(CliUsageError);
+  });
+
+  it("throws CliUsageError for an unknown short flag", () => {
+    expect(() => parseArgs(["Berlin", "-z"])).toThrow(CliUsageError);
+  });
+
+  // ── extra positional args ──────────────────────────────────────────────────
+
+  it("throws CliUsageError for extra positional arg and message mentions quoting", () => {
+    let error: unknown;
+    try {
+      parseArgs(["Frankfurt", "am", "Main"]);
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(CliUsageError);
+    // Message should hint that the user should quote multi-word city names
+    expect((error as CliUsageError).message).toMatch(/quot/i);
+  });
+
+  it("throws CliUsageError for a single extra positional after city", () => {
+    expect(() => parseArgs(["Berlin", "extra"])).toThrow(CliUsageError);
+  });
+
+  // ── city + --film mutual exclusivity ──────────────────────────────────────
+
+  it("throws CliUsageError when city positional and --film are both provided", () => {
+    let error: unknown;
+    try {
+      parseArgs(["Berlin", "--film", "Dune"]);
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(CliUsageError);
+    expect((error as CliUsageError).message).toMatch(/mutually exclusive/i);
+  });
+
+  it("throws CliUsageError when city positional and -f are both provided", () => {
+    let error: unknown;
+    try {
+      parseArgs(["Berlin", "-f", "Dune"]);
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(CliUsageError);
+    expect((error as CliUsageError).message).toMatch(/mutually exclusive/i);
+  });
+
+  // ── --week flag ────────────────────────────────────────────────────────────
+
+  it("parses --week flag", () => {
+    const opts = parseArgs(["Berlin", "--week"]);
+    expect(opts.week).toBe(true);
+  });
+
+  it("parses -w as alias for --week", () => {
+    const opts = parseArgs(["Berlin", "-w"]);
+    expect(opts.week).toBe(true);
+  });
+
+  it("throws CliUsageError when --week and --today are both set", () => {
+    let error: unknown;
+    try {
+      parseArgs(["Berlin", "--week", "--today"]);
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(CliUsageError);
+    expect((error as CliUsageError).message).toMatch(/mutually exclusive/i);
+  });
+
+  // ── --cities flag ──────────────────────────────────────────────────────────
+
+  it("parses --cities flag", () => {
+    const opts = parseArgs(["--cities"]);
+    expect(opts.citiesFlag).toBe(true);
+  });
+});
